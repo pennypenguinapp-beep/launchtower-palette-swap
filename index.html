@@ -259,6 +259,7 @@ footer .tag{color:var(--muted);font-size:.75rem;margin-top:4px}
       <span class="zoomval" id="zoomVal">8×</span>
     </div>
     <div class="actions">
+      <button id="loadExample">✨ Load example</button>
       <button id="resetBtn" disabled>Reset colors</button>
       <button id="newBtn" disabled>Load different image</button>
     </div>
@@ -554,6 +555,50 @@ footer .tag{color:var(--muted);font-size:.75rem;margin-top:4px}
       setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
       showToast('Downloaded ' + fileName + '-recolored.png');
     }, 'image/png');
+  });
+
+  // ---------- load example ----------
+  function makeExampleSprite(){
+    var c = document.createElement('canvas');
+    c.width = 64; c.height = 32;
+    var x = c.getContext('2d');
+    var palette = ['#e63946','#f4a261','#f9c74f','#2a9d8f','#457b9d','#9b5de5','#f15bb5','#43aa8b'];
+    // 8 distinct 16x16 tiles, each with a simple shape
+    for(var t=0;t<8;t++){
+      var ox = t*16, oy = 0;
+      x.fillStyle = palette[t];
+      x.fillRect(ox, oy, 16, 16);
+      x.fillStyle = '#ffffff';
+      if(t===0){ x.fillRect(ox+4, oy+4, 8, 8); }                          // square
+      else if(t===1){ x.beginPath(); x.arc(ox+8, oy+8, 5, 0, Math.PI*2); x.fill(); } // circle
+      else if(t===2){ x.beginPath(); x.moveTo(ox+8, oy+3); x.lineTo(ox+13, oy+13); x.lineTo(ox+3, oy+13); x.closePath(); x.fill(); } // triangle
+      else if(t===3){ x.fillRect(ox+7, oy+3, 2, 10); x.fillRect(ox+3, oy+7, 10, 2); } // plus
+      else if(t===4){ x.fillRect(ox+3, oy+3, 4, 4); x.fillRect(ox+9, oy+9, 4, 4); } // diagonal dots
+      else if(t===5){ x.fillRect(ox+3, oy+5, 10, 2); x.fillRect(ox+3, oy+9, 10, 2); } // stripes
+      else if(t===6){ x.fillRect(ox+5, oy+4, 6, 2); x.fillRect(ox+6, oy+6, 4, 4); x.fillRect(ox+5, oy+10, 6, 2); } // face
+      else { x.fillRect(ox+4, oy+4, 8, 8); x.fillStyle = palette[t]; x.fillRect(ox+6, oy+6, 4, 4); } // ring
+    }
+    // second row: checkerboard + gradient-ish tiles
+    for(var px=0;px<4;px++){
+      for(var py=0;py<2;py++){
+        x.fillStyle = (px+py)%2 ? '#1d3557' : '#a8dadc';
+        x.fillRect(px*16, 16+py*8, 16, 8);
+      }
+    }
+    x.fillStyle = '#ffb703';
+    x.fillRect(64-16, 16, 16, 16);
+    x.fillStyle = '#fb8500';
+    x.fillRect(64-12, 20, 8, 8);
+    var img = new Image();
+    img.src = c.toDataURL('image/png');
+    return img;
+  }
+  document.getElementById('loadExample').addEventListener('click', function(){
+    var img = makeExampleSprite();
+    img.onload = function(){
+      loadSprite(img, 'example-sprite');
+      showToast('Example sprite loaded — try Randomize or recolor the tiles');
+    };
   });
 
   // ---------- dropzone ----------
