@@ -3,524 +3,611 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sprite Animation Previewer — LaunchTower</title>
+<title>Palette Swap Tool — LaunchTower</title>
 <style>
-  :root {
-    --bg: #0f1117;
-    --panel: #181c25;
-    --panel2: #1f2430;
-    --border: #2c3342;
-    --text: #e8ecf4;
-    --muted: #8b93a7;
-    --accent: #5b8cff;
-    --accent2: #3ddc97;
-    --danger: #ff5b6e;
-    --radius: 10px;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg);
-    color: var(--text);
-    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
-    min-height: 100vh;
-    padding: 24px;
-  }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  header { margin-bottom: 20px; }
-  h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: .3px; }
-  h1 .brand { color: var(--accent); }
-  .sub { color: var(--muted); font-size: .9rem; margin-top: 4px; }
-  .grid {
-    display: grid;
-    grid-template-columns: 320px 1fr;
-    gap: 16px;
-    align-items: start;
-  }
-  @media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
-  .panel {
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    padding: 16px;
-  }
-  .panel h2 {
-    font-size: .8rem;
-    text-transform: uppercase;
-    letter-spacing: 1px;
-    color: var(--muted);
-    margin-bottom: 12px;
-  }
-  .drop {
-    border: 2px dashed var(--border);
-    border-radius: var(--radius);
-    padding: 22px 14px;
-    text-align: center;
-    color: var(--muted);
-    font-size: .85rem;
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-    margin-bottom: 14px;
-  }
-  .drop:hover, .drop.over { border-color: var(--accent); background: rgba(91,140,255,.06); color: var(--text); }
-  .drop b { color: var(--accent); }
-  .row { margin-bottom: 12px; }
-  .row label { display: block; font-size: .78rem; color: var(--muted); margin-bottom: 5px; }
-  select, input[type=number], input[type=text] {
-    width: 100%;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 6px;
-    padding: 8px 10px;
-    font-size: .85rem;
-    outline: none;
-  }
-  select:focus, input:focus { border-color: var(--accent); }
-  .pair { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .seg { display: flex; gap: 6px; }
-  .seg button {
-    flex: 1;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    color: var(--muted);
-    border-radius: 6px;
-    padding: 7px 4px;
-    font-size: .78rem;
-    cursor: pointer;
-  }
-  .seg button.on { background: var(--accent); color: #fff; border-color: var(--accent); }
-  .btn {
-    display: inline-block;
-    background: var(--accent);
-    color: #fff;
-    border: none;
-    border-radius: 6px;
-    padding: 9px 14px;
-    font-size: .85rem;
-    cursor: pointer;
-    font-weight: 600;
-  }
-  .btn:hover { filter: brightness(1.1); }
-  .btn.ghost { background: transparent; border: 1px solid var(--border); color: var(--text); font-weight: 400; }
-  .btn.green { background: var(--accent2); color: #08281a; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
-  .stage {
-    background: #0a0c11;
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    min-height: 340px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    position: relative;
-  }
-  .stage .empty { color: var(--muted); font-size: .9rem; text-align: center; padding: 20px; }
-  .stage .empty .big { font-size: 2rem; margin-bottom: 8px; }
-  canvas#view { image-rendering: pixelated; image-rendering: crisp-edges; display: block; }
-  .stagebar {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    flex-wrap: wrap;
-    margin-top: 12px;
-    padding-top: 12px;
-    border-top: 1px solid var(--border);
-  }
-  .playbtn {
-    width: 42px; height: 42px;
-    border-radius: 50%;
-    background: var(--accent2);
-    color: #08281a;
-    border: none;
-    font-size: 1.1rem;
-    cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-  .playbtn:hover { filter: brightness(1.1); }
-  .scrub { flex: 1; min-width: 140px; }
-  input[type=range] {
-    width: 100%;
-    -webkit-appearance: none;
-    height: 6px;
-    background: var(--panel2);
-    border-radius: 3px;
-    outline: none;
-  }
-  input[type=range]::-webkit-slider-thumb {
-    -webkit-appearance: none;
-    width: 16px; height: 16px;
-    background: var(--accent);
-    border-radius: 50%;
-    cursor: pointer;
-  }
-  .frameinfo { font-size: .8rem; color: var(--muted); white-space: nowrap; }
-  .frameinfo b { color: var(--text); }
-  .zoomctl { display: flex; align-items: center; gap: 6px; }
-  .zoomctl button {
-    width: 28px; height: 28px;
-    background: var(--panel2);
-    border: 1px solid var(--border);
-    color: var(--text);
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 1rem;
-    line-height: 1;
-  }
-  .zoomctl span { font-size: .78rem; color: var(--muted); min-width: 38px; text-align: center; }
-  .fpsrow { display: flex; align-items: center; gap: 8px; }
-  .fpsrow input { width: 64px; }
-  .strip {
-    display: flex;
-    gap: 6px;
-    margin-top: 12px;
-    overflow-x: auto;
-    padding-bottom: 4px;
-  }
-  .strip canvas {
-    width: 56px; height: 56px;
-    image-rendering: pixelated;
-    background: #0a0c10;
-    border: 2px solid var(--border);
-    border-radius: 6px;
-    cursor: pointer;
-    flex-shrink: 0;
-  }
-  .strip canvas.cur { border-color: var(--accent2); }
-  .strip canvas:hover { border-color: var(--accent); }
-  .meta { font-size: .78rem; color: var(--muted); margin-top: 10px; line-height: 1.5; }
-  .meta b { color: var(--text); }
-  .err { color: var(--danger); font-size: .8rem; margin-top: 8px; min-height: 1em; }
-  .hint { font-size: .72rem; color: var(--muted); margin-top: 6px; }
-  footer { margin-top: 22px; text-align: center; color: var(--muted); font-size: .75rem; }
-  footer a { color: var(--accent); text-decoration: none; }
-  .check { display: flex; align-items: center; gap: 8px; font-size: .8rem; color: var(--muted); cursor: pointer; user-select: none; }
-  .check input { accent-color: var(--accent); }
+:root{
+  --bg:#0d1117;
+  --panel:#161b22;
+  --panel2:#1c2330;
+  --border:#2d3748;
+  --text:#e6edf3;
+  --muted:#8b949e;
+  --accent:#58a6ff;
+  --accent2:#3fb950;
+  --danger:#f85149;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{
+  background:var(--bg);
+  color:var(--text);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  min-height:100vh;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  padding:16px;
+}
+header{
+  width:100%;
+  max-width:1100px;
+  margin-bottom:16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:8px;
+}
+header h1{
+  font-size:1.35rem;
+  font-weight:700;
+  letter-spacing:.3px;
+}
+header h1 span{color:var(--accent)}
+.badge{
+  font-size:.7rem;
+  background:var(--panel2);
+  border:1px solid var(--border);
+  padding:3px 10px;
+  border-radius:20px;
+  color:var(--muted);
+}
+main{
+  width:100%;
+  max-width:1100px;
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:16px;
+  flex:1;
+}
+@media(max-width:820px){
+  main{grid-template-columns:1fr}
+}
+.card{
+  background:var(--panel);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:16px;
+}
+.card h2{
+  font-size:.85rem;
+  text-transform:uppercase;
+  letter-spacing:1px;
+  color:var(--muted);
+  margin-bottom:12px;
+}
+.dropzone{
+  border:2px dashed var(--border);
+  border-radius:var(--radius);
+  padding:28px 16px;
+  text-align:center;
+  cursor:pointer;
+  transition:border-color .2s,background .2s;
+  margin-bottom:14px;
+}
+.dropzone:hover,.dropzone.drag{
+  border-color:var(--accent);
+  background:rgba(88,166,255,.06);
+}
+.dropzone p{color:var(--muted);font-size:.9rem}
+.dropzone .big{font-size:1.6rem;margin-bottom:6px}
+input[type=file]{display:none}
+.preview-wrap{
+  background:
+    linear-gradient(45deg,#1a2030 25%,transparent 25%),
+    linear-gradient(-45deg,#1a2030 25%,transparent 25%),
+    linear-gradient(45deg,transparent 75%,#1a2030 75%),
+    linear-gradient(-45deg,transparent 75%,#1a2030 75%);
+  background-size:16px 16px;
+  background-position:0 0,0 8px,8px -8px,-8px 0;
+  background-color:#12161f;
+  border:1px solid var(--border);
+  border-radius:8px;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:180px;
+  max-height:340px;
+  overflow:hidden;
+  margin-bottom:12px;
+}
+.preview-wrap canvas{
+  image-rendering:pixelated;
+  image-rendering:crisp-edges;
+  max-width:100%;
+  max-height:340px;
+}
+.preview-wrap .placeholder{color:var(--muted);font-size:.85rem}
+.zoom-row{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  margin-bottom:12px;
+  flex-wrap:wrap;
+}
+.zoom-row label{font-size:.8rem;color:var(--muted)}
+.zoom-row input[type=range]{flex:1;min-width:100px;accent-color:var(--accent)}
+.zoom-row .zoomval{font-size:.8rem;color:var(--text);min-width:34px;text-align:right}
+.color-list{
+  max-height:260px;
+  overflow-y:auto;
+  border:1px solid var(--border);
+  border-radius:8px;
+  background:var(--panel2);
+}
+.color-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:6px 10px;
+  border-bottom:1px solid var(--border);
+}
+.color-row:last-child{border-bottom:none}
+.color-row .swatch{
+  width:26px;height:26px;
+  border-radius:6px;
+  border:1px solid rgba(255,255,255,.25);
+  flex-shrink:0;
+}
+.color-row .hex{
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  font-size:.78rem;
+  color:var(--muted);
+  min-width:64px;
+}
+.color-row .count{
+  font-size:.72rem;
+  color:var(--muted);
+  margin-left:auto;
+}
+.color-row input[type=color]{
+  width:34px;height:28px;
+  border:none;background:none;
+  cursor:pointer;
+  padding:0;
+}
+.color-row .use{
+  font-size:.7rem;
+  color:var(--muted);
+  width:14px;height:14px;
+  accent-color:var(--accent2);
+  cursor:pointer;
+}
+.actions{
+  display:flex;
+  gap:10px;
+  flex-wrap:wrap;
+  margin-top:14px;
+}
+button{
+  font-family:inherit;
+  font-size:.85rem;
+  font-weight:600;
+  padding:9px 16px;
+  border-radius:8px;
+  border:1px solid var(--border);
+  background:var(--panel2);
+  color:var(--text);
+  cursor:pointer;
+  transition:background .15s,border-color .15s,transform .1s;
+}
+button:hover{background:#232b3a;border-color:var(--accent)}
+button:active{transform:scale(.97)}
+button.primary{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#0d1117;
+}
+button.primary:hover{background:#79b8ff}
+button:disabled{opacity:.4;cursor:not-allowed}
+button:disabled:hover{background:var(--panel2);border-color:var(--border)}
+footer{
+  margin-top:20px;
+  padding:14px 0;
+  width:100%;
+  max-width:1100px;
+  text-align:center;
+  border-top:1px solid var(--border);
+}
+footer a{
+  color:var(--accent);
+  text-decoration:none;
+  font-size:.85rem;
+}
+footer a:hover{text-decoration:underline}
+footer .tag{color:var(--muted);font-size:.75rem;margin-top:4px}
+.toast{
+  position:fixed;
+  bottom:20px;
+  left:50%;
+  transform:translateX(-50%);
+  background:var(--panel2);
+  border:1px solid var(--accent2);
+  color:var(--text);
+  padding:10px 20px;
+  border-radius:8px;
+  font-size:.85rem;
+  opacity:0;
+  pointer-events:none;
+  transition:opacity .25s;
+  z-index:99;
+}
+.toast.show{opacity:1}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <header>
-    <h1>Sprite Animation Previewer <span class="brand">· LaunchTower</span></h1>
-    <div class="sub">Load a sprite sheet, choose your layout, and preview the animation frame-by-frame. Runs 100% in your browser — nothing is uploaded.</div>
-  </header>
+<header>
+  <h1>Palette <span>Swap</span> Tool</h1>
+  <div class="badge">LaunchTower · free · runs in your browser</div>
+</header>
 
-  <div class="grid">
-    <div class="panel">
-      <h2>Source</h2>
-      <div class="drop" id="drop">
-        <div class="big">🖼️</div>
-        Drop a sprite sheet here or <b>click to browse</b><br>
-        <span style="font-size:.72rem">PNG / JPG / WebP</span>
-      </div>
-      <input type="file" id="file" accept="image/png,image/jpeg,image/webp" hidden>
-      <button class="btn ghost" id="loadExample" style="width:100%; margin-bottom:14px;">✨ Load example sheet</button>
-
-      <div class="row">
-        <label>Layout</label>
-        <div class="seg" id="layoutSeg">
-          <button data-v="rows" class="on">Rows</button>
-          <button data-v="cols">Columns</button>
-        </div>
-      </div>
-
-      <div class="row pair">
-        <div>
-          <label>Frames / row</label>
-          <input type="number" id="framesRow" min="1" max="64" value="4">
-        </div>
-        <div>
-          <label>Rows</label>
-          <input type="number" id="rows" min="1" max="64" value="1">
-        </div>
-      </div>
-
-      <div class="row pair">
-        <div>
-          <label>Frame W (px)</label>
-          <input type="number" id="fw" min="1" value="32">
-        </div>
-        <div>
-          <label>Frame H (px)</label>
-          <input type="number" id="fh" min="1" value="32">
-        </div>
-      </div>
-
-      <div class="row pair">
-        <div>
-          <label>Margin (px)</label>
-          <input type="number" id="margin" min="0" value="0">
-        </div>
-        <div>
-          <label>Spacing (px)</label>
-          <input type="number" id="spacing" min="0" value="0">
-        </div>
-      </div>
-
-      <div class="row">
-        <label>Animation</label>
-        <div class="seg" id="dirSeg">
-          <button data-v="fwd" class="on">Forward</button>
-          <button data-v="pingpong">Ping-pong</button>
-        </div>
-      </div>
-
-      <div class="row">
-        <label class="check"><input type="checkbox" id="transparent" checked> Treat near-white as transparent (for white-background sheets)</label>
-      </div>
-
-      <div class="row">
-        <label class="check"><input type="checkbox" id="grid" > Show frame grid on sheet</label>
-      </div>
-
-      <div class="err" id="err"></div>
-      <div class="hint">Tip: if frames look offset, nudge Margin/Spacing by 1px.</div>
+<main>
+  <!-- LEFT: source -->
+  <section class="card">
+    <h2>1 · Source sprite</h2>
+    <div class="dropzone" id="dropzone">
+      <div class="big">🎨</div>
+      <p><strong>Drop a sprite / image here</strong><br>or click to browse (PNG, JPG, GIF, WebP)</p>
     </div>
+    <input type="file" id="fileInput" accept="image/*">
+    <div class="preview-wrap" id="srcWrap">
+      <span class="placeholder">Original appears here</span>
+    </div>
+    <div class="zoom-row">
+      <label>Zoom</label>
+      <input type="range" id="zoom" min="1" max="32" value="8">
+      <span class="zoomval" id="zoomVal">8×</span>
+    </div>
+    <div class="actions">
+      <button id="resetBtn" disabled>Reset colors</button>
+      <button id="newBtn" disabled>Load different image</button>
+    </div>
+  </section>
 
-    <div class="panel">
-      <h2>Preview</h2>
-      <div class="stage" id="stage">
-        <div class="empty" id="empty">
-          <div class="big">▶️</div>
-          Load a sprite sheet to start previewing
-        </div>
-        <canvas id="view" style="display:none"></canvas>
-      </div>
-
-      <div class="stagebar">
-        <button class="playbtn" id="play" title="Play / Pause">▶</button>
-        <div class="scrub">
-          <input type="range" id="scrub" min="0" max="0" value="0">
-        </div>
-        <div class="frameinfo">Frame <b id="fnum">–</b> / <b id="ftot">–</b></div>
-        <div class="fpsrow">
-          <span style="font-size:.78rem;color:var(--muted)">FPS</span>
-          <input type="number" id="fps" min="1" max="60" value="12">
-        </div>
-        <div class="zoomctl">
-          <button id="zout">−</button>
-          <span id="zval">8×</span>
-          <button id="zin">+</button>
-        </div>
-      </div>
-
-      <div class="strip" id="strip"></div>
-
-      <div class="meta" id="meta">No sheet loaded.</div>
-
-      <div style="margin-top:14px; display:flex; gap:10px; flex-wrap:wrap">
-        <button class="btn green" id="dlFrame" disabled>Download current frame (PNG)</button>
-        <button class="btn ghost" id="dlAll" disabled>Download all frames</button>
+  <!-- RIGHT: remap + output -->
+  <section class="card">
+    <h2>2 · Remap colors</h2>
+    <div class="color-list" id="colorList">
+      <div class="color-row" style="color:var(--muted);font-size:.85rem">
+        Load an image to see its palette…
       </div>
     </div>
-  </div>
+    <div class="actions">
+      <button id="randomBtn" disabled>🎲 Randomize all</button>
+      <button id="invertBtn" disabled>Invert</button>
+    </div>
+    <h2 style="margin-top:18px">3 · Result</h2>
+    <div class="preview-wrap" id="outWrap">
+      <span class="placeholder">Recolored preview appears here</span>
+    </div>
+    <div class="actions">
+      <button class="primary" id="downloadBtn" disabled>⬇ Download recolored PNG</button>
+    </div>
+  </section>
+</main>
 
-  <footer>
-    Built by <a href="https://pennypenguinapp-beep.github.io/">LaunchTower</a> · Free pixel-art toolkit · No data leaves your browser
-  </footer>
-</div>
+<footer>
+  <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener">More free tools for pixel artists &amp; game devs → LaunchTower</a>
+  <div class="tag">Everything runs locally in your browser — your images never leave your device.</div>
+</footer>
+
+<div class="toast" id="toast"></div>
 
 <script>
 (function(){
   "use strict";
-  const $ = id => document.getElementById(id);
-  const drop=$("drop"), file=$("file"), err=$("err");
-  const view=$("view"), empty=$("empty"), stage=$("stage");
-  const scrub=$("scrub"), fnum=$("fnum"), ftot=$("ftot");
-  const play=$("play"), fps=$("fps"), strip=$("strip"), meta=$("meta");
-  const dlFrame=$("dlFrame"), dlAll=$("dlAll");
-  const zin=$("zin"), zout=$("zout"), zval=$("zval");
 
-  let img=null, frames=[], cur=0, playing=false, zoom=8, rafId=null, lastT=0;
-  let layout="rows", dir="fwd", pingIdx=0, pingDir=1;
+  var fileInput = document.getElementById('fileInput');
+  var dropzone = document.getElementById('dropzone');
+  var srcWrap = document.getElementById('srcWrap');
+  var outWrap = document.getElementById('outWrap');
+  var colorList = document.getElementById('colorList');
+  var zoom = document.getElementById('zoom');
+  var zoomVal = document.getElementById('zoomVal');
+  var resetBtn = document.getElementById('resetBtn');
+  var newBtn = document.getElementById('newBtn');
+  var randomBtn = document.getElementById('randomBtn');
+  var invertBtn = document.getElementById('invertBtn');
+  var downloadBtn = document.getElementById('downloadBtn');
+  var toast = document.getElementById('toast');
 
-  drop.addEventListener("click", ()=>file.click());
-  drop.addEventListener("dragover", e=>{e.preventDefault(); drop.classList.add("over");});
-  drop.addEventListener("dragleave", ()=>drop.classList.remove("over"));
-  drop.addEventListener("drop", e=>{
-    e.preventDefault(); drop.classList.remove("over");
-    if(e.dataTransfer.files.length) loadFile(e.dataTransfer.files[0]);
-  });
-  file.addEventListener("change", e=>{ if(e.target.files.length) loadFile(e.target.files[0]); });
+  var srcCanvas = document.createElement('canvas');
+  var srcCtx = srcCanvas.getContext('2d', {willReadFrequently:true});
+  var outCanvas = document.createElement('canvas');
+  var outCtx = outCanvas.getContext('2d');
 
-  function loadFile(f){
-    err.textContent="";
-    const url=URL.createObjectURL(f);
-    const im=new Image();
-    im.onload=()=>{
-      img=im;
-      $("empty").style.display="none";
-      view.style.display="block";
-      rebuild();
-      meta.innerHTML="Sheet: <b>"+im.naturalWidth+"×"+im.naturalHeight+"</b> · <b>"+frames.length+"</b> frames extracted";
-    };
-    im.onerror=()=>{ err.textContent="Could not decode that image. Try a PNG."; };
-    im.src=url;
+  var srcData = null;      // ImageData of original
+  var mapping = [];        // array of {orig:[r,g,b,a], target:[r,g,b,a], count}
+  var fileName = 'sprite';
+
+  // ---------- toast ----------
+  var toastTimer = null;
+  function showToast(msg){
+    toast.textContent = msg;
+    toast.classList.add('show');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(function(){ toast.classList.remove('show'); }, 2200);
   }
 
-  function seg(id, cb){
-    const el=$(id);
-    el.querySelectorAll("button").forEach(b=>{
-      b.onclick=()=>{
-        el.querySelectorAll("button").forEach(x=>x.classList.remove("on"));
-        b.classList.add("on");
-        cb(b.dataset.v);
-      };
-    });
-  }
-  seg("layoutSeg", v=>{ layout=v; rebuild(); });
-  seg("dirSeg", v=>{ dir=v; pingIdx=0; pingDir=1; cur=0; render(); });
-
-  ["framesRow","rows","fw","fh","margin","spacing"].forEach(id=>{
-    $(id).addEventListener("input", debounce(rebuild, 180));
-  });
-  $("transparent").addEventListener("change", rebuild);
-  $("grid").addEventListener("change", rebuild);
-
-  function debounce(fn, ms){ let t; return ()=>{ clearTimeout(t); t=setTimeout(fn, ms); }; }
-
-  function rebuild(){
-    if(!img) return;
-    err.textContent="";
-    const fw=Math.max(1, parseInt($("fw").value)||32);
-    const fh=Math.max(1, parseInt($("fh").value)||32);
-    const m=Math.max(0, parseInt($("margin").value)||0);
-    const sp=Math.max(0, parseInt($("spacing").value)||0);
-    const fr=Math.max(1, parseInt($("framesRow").value)||4);
-    const rw=Math.max(1, parseInt($("rows").value)||1);
-    const trans=$("transparent").checked;
-
-    const W=img.naturalWidth, H=img.naturalHeight;
-    const src=document.createElement("canvas");
-    src.width=W; src.height=H;
-    const sctx=src.getContext("2d");
-    sctx.drawImage(img,0,0);
-
-    if(trans){
-      const d=sctx.getImageData(0,0,W,H);
-      const px=d.data;
-      for(let i=0;i<px.length;i+=4){
-        if(px[i]>245 && px[i+1]>245 && px[i+2]>245){ px[i+3]=0; }
-      }
-      sctx.putImageData(d,0,0);
-    }
-
-    frames=[];
-    for(let r=0;r<rw;r++){
-      for(let c=0;c<fr;c++){
-        const x=m + c*(fw+sp);
-        const y=m + r*(fh+sp);
-        if(x+fw>W || y+fh>H) continue;
-        const fc=document.createElement("canvas");
-        fc.width=fw; fc.height=fh;
-        const fctx=fc.getContext("2d");
-        fctx.imageSmoothingEnabled=false;
-        fctx.drawImage(src, x, y, fw, fh, 0, 0, fw, fh);
-        frames.push(fc);
-      }
-    }
-
-    if(frames.length===0){
-      err.textContent="No frames fit in the sheet with this layout. Reduce frame size or increase sheet area.";
-      view.style.display="none";
-      empty.style.display="block";
+  // ---------- file loading ----------
+  function handleFile(file){
+    if(!file || !file.type.startsWith('image/')){
+      showToast('Please choose an image file');
       return;
     }
-
-    strip.innerHTML="";
-    frames.forEach((f,i)=>{
-      const t=document.createElement("canvas");
-      t.width=56; t.height=56;
-      const tc=t.getContext("2d");
-      tc.imageSmoothingEnabled=false;
-      const scale=Math.min(56/f.width, 56/f.height);
-      const dw=f.width*scale, dh=f.height*scale;
-      tc.drawImage(f, (56-dw)/2, (56-dh)/2, dw, dh);
-      t.onclick=()=>{ cur=i; pingIdx=i; render(); };
-      t.title="Frame "+(i+1);
-      strip.appendChild(t);
-    });
-
-    cur=0; pingIdx=0; pingDir=1;
-    scrub.max=frames.length-1;
-    scrub.value=0;
-    render();
+    var reader = new FileReader();
+    reader.onload = function(e){
+      var img = new Image();
+      img.onload = function(){
+        loadSprite(img, file.name);
+      };
+      img.onerror = function(){ showToast('Could not read that image'); };
+      img.src = e.target.result;
+    };
+    reader.readAsDataURL(file);
   }
 
-  function render(){
-    if(!frames.length) return;
-    cur=Math.max(0, Math.min(cur, frames.length-1));
-    const f=frames[cur];
-    const dw=f.width*zoom, dh=f.height*zoom;
-    if(view.width!==dw) view.width=dw;
-    if(view.height!==dh) view.height=dh;
-    const ctx=view.getContext("2d");
-    ctx.imageSmoothingEnabled=false;
-    ctx.clearRect(0,0,dw,dh);
-    ctx.drawImage(f,0,0,dw,dh);
-    scrub.value=cur;
-    fnum.textContent=cur+1;
-    ftot.textContent=frames.length;
-    [...strip.children].forEach((c,i)=>c.classList.toggle("cur", i===cur));
-    dlFrame.disabled=false; dlAll.disabled=false;
-  }
-
-  function tick(t){
-    if(!playing) return;
-    const target=1000/(parseInt(fps.value)||12);
-    if(t-lastT>=target){
-      lastT=t;
-      if(dir==="fwd"){
-        cur=(cur+1)%frames.length;
-      } else {
-        pingIdx+=pingDir;
-        if(pingIdx>=frames.length){ pingIdx=frames.length-1; pingDir=-1; }
-        if(pingIdx<0){ pingIdx=0; pingDir=1; }
-        cur=pingIdx;
-      }
-      render();
+  function loadSprite(img, name){
+    var w = img.naturalWidth || img.width;
+    var h = img.naturalHeight || img.height;
+    if(w > 2048 || h > 2048){
+      showToast('Image is large — processing…');
     }
-    rafId=requestAnimationFrame(tick);
-  }
-  play.onclick=()=>{
-    playing=!playing;
-    play.textContent=playing?"⏸":"▶";
-    if(playing){ lastT=performance.now(); rafId=requestAnimationFrame(tick); }
-    else if(rafId) cancelAnimationFrame(rafId);
-  };
-  scrub.oninput=()=>{ cur=parseInt(scrub.value)||0; pingIdx=cur; render(); };
+    srcCanvas.width = w;
+    srcCanvas.height = h;
+    srcCtx.clearRect(0,0,w,h);
+    srcCtx.drawImage(img, 0, 0, w, h);
+    srcData = srcCtx.getImageData(0, 0, w, h);
+    fileName = (name || 'sprite').replace(/\.[^.]+$/,'') || 'sprite';
 
-  function setZoom(z){
-    zoom=Math.max(1, Math.min(32, z));
-    zval.textContent=zoom+"×";
-    render();
-  }
-  zin.onclick=()=>setZoom(zoom+1);
-  zout.onclick=()=>setZoom(zoom-1);
+    buildPalette();
+    renderOriginal();
+    applyMapping();
 
-  dlFrame.onclick=()=>{
-    if(!frames[cur]) return;
-    const a=document.createElement("a");
-    a.download="frame_"+(cur+1)+".png";
-    a.href=frames[cur].toDataURL("image/png");
-    a.click();
-  };
-  dlAll.onclick=()=>{
-    frames.forEach((f,i)=>{
-      const a=document.createElement("a");
-      a.download="frame_"+(i+1)+".png";
-      a.href=f.toDataURL("image/png");
-      a.click();
+    resetBtn.disabled = false;
+    newBtn.disabled = false;
+    randomBtn.disabled = false;
+    invertBtn.disabled = false;
+    downloadBtn.disabled = false;
+  }
+
+  // ---------- palette ----------
+  function buildPalette(){
+    var d = srcData.data;
+    var counts = {};
+    for(var i=0;i<d.length;i+=4){
+      if(d[i+3] === 0) continue;
+      var key = (d[i]<<24)|(d[i+1]<<16)|(d[i+2]<<8)|d[i+3];
+      counts[key] = (counts[key]||0)+1;
+    }
+    var entries = Object.keys(counts).map(function(k){
+      var v = parseInt(k,10);
+      return {
+        orig:[(v>>>24)&255,(v>>>16)&255,(v>>>8)&255,v&255],
+        target:[(v>>>24)&255,(v>>>16)&255,(v>>>8)&255,v&255],
+        count: counts[k]
+      };
     });
-  };
+    entries.sort(function(a,b){ return b.count - a.count; });
+    // cap at 64 colors for usability
+    if(entries.length > 64){
+      entries = entries.slice(0,64);
+    }
+    mapping = entries;
+    renderColorList();
+  }
 
-  document.addEventListener("keydown", e=>{
-    if(e.target.tagName==="INPUT") return;
-    if(e.code==="Space"){ e.preventDefault(); play.click(); }
-    if(e.code==="ArrowRight"){ cur=Math.min(cur+1, frames.length-1); pingIdx=cur; render(); }
-    if(e.code==="ArrowLeft"){ cur=Math.max(cur-1, 0); pingIdx=cur; render(); }
+  function renderColorList(){
+    colorList.innerHTML = '';
+    mapping.forEach(function(m, idx){
+      var row = document.createElement('div');
+      row.className = 'color-row';
+
+      var sw = document.createElement('div');
+      sw.className = 'swatch';
+      sw.style.background = rgba(m.orig);
+      sw.title = 'original';
+
+      var hex = document.createElement('span');
+      hex.className = 'hex';
+      hex.textContent = hexOf(m.orig);
+
+      var use = document.createElement('input');
+      use.type = 'color';
+      use.value = rgbHex(m.target);
+      use.title = 'set new color';
+      use.addEventListener('input', function(){
+        m.target = hexToRgb(use.value);
+        m.target[3] = m.orig[3];
+        applyMapping();
+      });
+
+      var count = document.createElement('span');
+      count.className = 'count';
+      count.textContent = m.count + ' px';
+
+      row.appendChild(sw);
+      row.appendChild(hex);
+      row.appendChild(use);
+      row.appendChild(count);
+      colorList.appendChild(row);
+    });
+  }
+
+  // ---------- rendering ----------
+  function renderOriginal(){
+    var z = parseInt(zoom.value,10);
+    zoomVal.textContent = z + '×';
+    srcWrap.innerHTML = '';
+    var c = document.createElement('canvas');
+    c.width = srcCanvas.width * z;
+    c.height = srcCanvas.height * z;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(srcCanvas, 0, 0, c.width, c.height);
+    srcWrap.appendChild(c);
+  }
+
+  function applyMapping(){
+    if(!srcData) return;
+    var w = srcData.width, h = srcData.height;
+    outCanvas.width = w;
+    outCanvas.height = h;
+    var src = srcData.data;
+    var out = outCtx.createImageData(w,h);
+    var dst = out.data;
+
+    // build a fast lookup: key -> target
+    var lookup = {};
+    for(var i=0;i<mapping.length;i++){
+      var m = mapping[i];
+      var key = (m.orig[0]<<24)|(m.orig[1]<<16)|(m.orig[2]<<8)|m.orig[3];
+      lookup[key] = m.target;
+    }
+
+    for(var p=0;p<src.length;p+=4){
+      var a = src[p+3];
+      if(a === 0){
+        dst[p]=0;dst[p+1]=0;dst[p+2]=0;dst[p+3]=0;
+        continue;
+      }
+      var key = (src[p]<<24)|(src[p+1]<<16)|(src[p+2]<<8)|a;
+      var t = lookup[key];
+      if(t){
+        dst[p]=t[0];dst[p+1]=t[1];dst[p+2]=t[2];dst[p+3]=t[3];
+      } else {
+        dst[p]=src[p];dst[p+1]=src[p+1];dst[p+2]=src[p+2];dst[p+3]=a;
+      }
+    }
+    outCtx.putImageData(out,0,0);
+    renderOutput();
+  }
+
+  function renderOutput(){
+    var z = parseInt(zoom.value,10);
+    outWrap.innerHTML = '';
+    var c = document.createElement('canvas');
+    c.width = outCanvas.width * z;
+    c.height = outCanvas.height * z;
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(outCanvas, 0, 0, c.width, c.height);
+    outWrap.appendChild(c);
+  }
+
+  // ---------- actions ----------
+  zoom.addEventListener('input', function(){
+    renderOriginal();
+    renderOutput();
   });
+
+  resetBtn.addEventListener('click', function(){
+    mapping.forEach(function(m){ m.target = m.orig.slice(); });
+    renderColorList();
+    applyMapping();
+    showToast('Colors reset to original');
+  });
+
+  newBtn.addEventListener('click', function(){
+    fileInput.value = '';
+    fileInput.click();
+  });
+
+  randomBtn.addEventListener('click', function(){
+    mapping.forEach(function(m){
+      m.target = [
+        Math.floor(Math.random()*256),
+        Math.floor(Math.random()*256),
+        Math.floor(Math.random()*256),
+        m.orig[3]
+      ];
+    });
+    renderColorList();
+    applyMapping();
+    showToast('Randomized all colors');
+  });
+
+  invertBtn.addEventListener('click', function(){
+    mapping.forEach(function(m){
+      m.target = [
+        255 - m.orig[0],
+        255 - m.orig[1],
+        255 - m.orig[2],
+        m.orig[3]
+      ];
+    });
+    renderColorList();
+    applyMapping();
+    showToast('Inverted colors');
+  });
+
+  downloadBtn.addEventListener('click', function(){
+    outCanvas.toBlob(function(blob){
+      if(!blob) { showToast('Export failed'); return; }
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      a.href = url;
+      a.download = fileName + '-recolored.png';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function(){ URL.revokeObjectURL(url); }, 1000);
+      showToast('Downloaded ' + fileName + '-recolored.png');
+    }, 'image/png');
+  });
+
+  // ---------- dropzone ----------
+  dropzone.addEventListener('click', function(){ fileInput.click(); });
+  fileInput.addEventListener('change', function(e){
+    if(e.target.files && e.target.files[0]) handleFile(e.target.files[0]);
+  });
+  ['dragenter','dragover'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add('drag');
+    });
+  });
+  ['dragleave','drop'].forEach(function(ev){
+    dropzone.addEventListener(ev, function(e){
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove('drag');
+    });
+  });
+  dropzone.addEventListener('drop', function(e){
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) handleFile(f);
+  });
+  // also allow dropping anywhere on the source card
+  document.querySelector('section.card').addEventListener('dragover', function(e){ e.preventDefault(); });
+  document.querySelector('section.card').addEventListener('drop', function(e){
+    e.preventDefault();
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if(f) handleFile(f);
+  });
+
+  // ---------- color helpers ----------
+  function rgba(c){ return 'rgba('+c[0]+','+c[1]+','+c[2]+','+(c[3]/255)+')'; }
+  function hexOf(c){
+    if(c[3] < 255) return hex3(c) + ' (α'+Math.round(c[3]/255*100)+'%)';
+    return hex3(c);
+  }
+  function hex3(c){
+    function h(n){ var s=n.toString(16); return s.length<2?'0'+s:s; }
+    return '#'+h(c[0])+h(c[1])+h(c[2]);
+  }
+  function rgbHex(c){
+    function h(n){ var s=n.toString(16); return s.length<2?'0'+s:s; }
+    return '#'+h(c[0])+h(c[1])+h(c[2]);
+  }
+  function hexToRgb(hex){
+    hex = hex.replace('#','');
+    return [
+      parseInt(hex.substr(0,2),16),
+      parseInt(hex.substr(2,2),16),
+      parseInt(hex.substr(4,2),16),
+      255
+    ];
+  }
 })();
 </script>
 </body>
