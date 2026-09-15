@@ -3,12 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Sprite Sheet Slicer — LaunchTower</title>
+<title>Palette Swap Tool — LaunchTower</title>
 <style>
   :root {
     --bg: #0d1117;
     --panel: #161b22;
-    --border: #30363d;
+    --panel2: #1c2330;
+    --border: #2d3748;
     --text: #e6edf3;
     --muted: #8b949e;
     --accent: #58a6ff;
@@ -21,412 +22,528 @@
     color: var(--text);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     min-height: 100vh;
-    padding: 16px;
+    display: flex;
+    flex-direction: column;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; }
-  h1 { font-size: 1.4rem; margin-bottom: 4px; }
-  h1 span { color: var(--accent); }
-  .sub { color: var(--muted); font-size: .85rem; margin-bottom: 16px; }
-  .grid { display: grid; grid-template-columns: 320px 1fr; gap: 16px; }
-  @media (max-width: 800px) { .grid { grid-template-columns: 1fr; } }
+  header {
+    padding: 18px 20px;
+    border-bottom: 1px solid var(--border);
+    background: var(--panel);
+  }
+  header h1 { font-size: 1.25rem; font-weight: 700; }
+  header h1 span { color: var(--accent); }
+  header p { color: var(--muted); font-size: 0.85rem; margin-top: 4px; }
+  main {
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    padding: 16px 20px;
+    max-width: 1200px;
+    width: 100%;
+    margin: 0 auto;
+  }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+  }
   .panel {
     background: var(--panel);
     border: 1px solid var(--border);
-    border-radius: 8px;
+    border-radius: 10px;
     padding: 16px;
   }
-  .panel h2 { font-size: .95rem; margin-bottom: 12px; color: var(--accent); }
-  .drop {
+  .panel h2 {
+    font-size: 0.95rem;
+    margin-bottom: 12px;
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .dropzone {
     border: 2px dashed var(--border);
     border-radius: 8px;
-    padding: 24px 12px;
+    padding: 28px 16px;
     text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
     color: var(--muted);
-    cursor: pointer;
-    transition: border-color .15s, background .15s;
-    margin-bottom: 14px;
-    font-size: .9rem;
+    font-size: 0.9rem;
   }
-  .drop.over { border-color: var(--accent); background: rgba(88,166,255,.08); }
-  .drop b { color: var(--text); }
-  input[type=file] { display: none; }
-  label.row { display: block; margin-bottom: 10px; }
-  label.row span { display: block; font-size: .8rem; color: var(--muted); margin-bottom: 4px; }
-  input[type=number] {
-    width: 100%;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
+  .dropzone:hover, .dropzone.dragover {
+    border-color: var(--accent);
+    background: rgba(88,166,255,0.06);
     color: var(--text);
-    padding: 8px 10px;
-    font-size: .95rem;
   }
-  input[type=number]:focus { outline: none; border-color: var(--accent); }
-  .presets { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
-  .presets button {
-    flex: 1;
-    min-width: 48px;
-    background: var(--bg);
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    color: var(--text);
-    padding: 7px 0;
-    cursor: pointer;
-    font-size: .85rem;
-  }
-  .presets button:hover { border-color: var(--accent); }
-  .presets button.active { border-color: var(--accent); background: rgba(88,166,255,.12); }
-  .stat { font-size: .85rem; color: var(--muted); margin-bottom: 12px; }
-  .stat b { color: var(--text); }
-  .btns { display: flex; flex-direction: column; gap: 8px; }
-  .btn {
-    background: var(--accent);
-    border: none;
-    border-radius: 6px;
-    color: #0d1117;
-    font-weight: 600;
-    padding: 10px 14px;
-    cursor: pointer;
-    font-size: .9rem;
-  }
-  .btn:hover { filter: brightness(1.1); }
-  .btn.alt { background: var(--accent2); }
-  .btn:disabled { background: var(--border); color: var(--muted); cursor: not-allowed; }
-  .preview-panel { display: flex; flex-direction: column; }
-  .preview-scroll {
-    overflow: auto;
-    max-height: 60vh;
-    border: 1px solid var(--border);
-    border-radius: 6px;
-    background: #000;
-    position: relative;
-  }
-  .preview-scroll canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
-  .placeholder {
-    padding: 60px 20px;
-    text-align: center;
-    color: var(--muted);
-    font-size: .9rem;
-  }
-  .tile-view {
+  .dropzone strong { color: var(--accent); }
+  input[type="file"] { display: none; }
+  .preview-wrap {
     margin-top: 14px;
     display: none;
-    align-items: center;
-    gap: 16px;
-    flex-wrap: wrap;
   }
-  .tile-view.show { display: flex; }
-  .tile-view canvas {
+  .preview-wrap.visible { display: block; }
+  .preview-label {
+    font-size: 0.8rem;
+    color: var(--muted);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .canvas-box {
+    background: repeating-conic-gradient(#1a2230 0% 25%, #10151d 0% 50%) 50% / 16px 16px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 120px;
+    max-height: 340px;
+  }
+  canvas {
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+    max-width: 100%;
+    max-height: 340px;
+    display: block;
+  }
+  .zoom-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-top: 10px;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  .zoom-row input[type="range"] { flex: 1; accent-color: var(--accent); }
+  .color-list {
+    margin-top: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+  .color-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    background: var(--panel2);
     border: 1px solid var(--border);
     border-radius: 6px;
-    background: repeating-conic-gradient(#222 0 25%, #111 0 50%) 0 0 / 16px 16px;
-    image-rendering: pixelated;
+    padding: 6px 10px;
   }
-  .tile-meta { font-size: .85rem; color: var(--muted); }
-  .tile-meta b { color: var(--text); }
-  .tile-dl {
+  .color-row .swatch {
+    width: 26px;
+    height: 26px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.15);
+    flex-shrink: 0;
+  }
+  .color-row .hex {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    color: var(--muted);
+    width: 64px;
+  }
+  .color-row input[type="color"] {
+    width: 34px;
+    height: 28px;
+    border: none;
+    background: transparent;
+    cursor: pointer;
+    padding: 0;
+  }
+  .color-row .count {
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-left: auto;
+  }
+  .color-row .hexedit {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 4px 6px;
+    width: 74px;
+  }
+  .color-row .hexedit:focus { outline: none; border-color: var(--accent); }
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
     background: var(--accent);
+    color: #0d1117;
     border: none;
     border-radius: 6px;
-    color: #0d1117;
+    padding: 9px 16px;
+    font-size: 0.9rem;
     font-weight: 600;
-    padding: 8px 14px;
     cursor: pointer;
+    transition: filter 0.15s;
   }
-  .footer { margin-top: 16px; text-align: center; color: var(--muted); font-size: .75rem; }
-  .footer a { color: var(--accent); text-decoration: none; }
+  .btn:hover { filter: brightness(1.1); }
+  .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+  .btn.secondary {
+    background: transparent;
+    color: var(--accent);
+    border: 1px solid var(--accent);
+  }
+  .btn-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    flex-wrap: wrap;
+  }
+  .empty-note {
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 10px 0;
+  }
+  .status {
+    font-size: 0.8rem;
+    color: var(--accent2);
+    margin-top: 8px;
+    min-height: 1.1em;
+  }
+  .status.err { color: var(--danger); }
+  footer {
+    border-top: 1px solid var(--border);
+    background: var(--panel);
+    padding: 14px 20px;
+    text-align: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+  }
+  footer a { color: var(--accent); text-decoration: none; }
+  footer a:hover { text-decoration: underline; }
+  .hint {
+    font-size: 0.75rem;
+    color: var(--muted);
+    margin-top: 8px;
+    line-height: 1.4;
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <h1>Sprite Sheet <span>Slicer</span></h1>
-  <div class="sub">Slice any sprite sheet into individual tiles. 100% in-browser — your image never leaves your device.</div>
+<header>
+  <h1>Palette Swap Tool <span>· LaunchTower</span></h1>
+  <p>Upload a sprite, remap every color to a new one, preview live, download the recolored PNG. 100% in your browser — nothing is uploaded anywhere.</p>
+</header>
 
-  <div class="grid">
-    <div class="panel">
-      <h2>1 · Load sheet</h2>
-      <div class="drop" id="drop">
-        <b>Drop a sprite sheet here</b><br>or click to browse<br><small>PNG · JPG · GIF · WebP</small>
+<main>
+  <section class="panel">
+    <h2>1 · Source</h2>
+    <div class="dropzone" id="dropzone">
+      <div><strong>Click to choose</strong> or drag &amp; drop an image</div>
+      <div style="margin-top:4px; font-size:0.78rem;">PNG, JPG, GIF, WebP — sprites, icons, tiles</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/png,image/jpeg,image/gif,image/webp">
+    <div class="preview-wrap" id="previewWrap">
+      <div class="preview-label">
+        <span id="imgInfo">—</span>
+        <span id="imgName"></span>
       </div>
-      <input type="file" id="file" accept="image/*">
-      <button class="btn" id="loadExample" style="margin-bottom:14px">✨ Load example sheet</button>
-
-      <h2>2 · Grid settings</h2>
-      <div class="presets" id="presets">
-        <button data-size="8">8px</button>
-        <button data-size="16" class="active">16px</button>
-        <button data-size="32">32px</button>
-        <button data-size="64">64px</button>
-      </div>
-      <label class="row"><span>Tile width (px)</span><input type="number" id="tw" min="1" value="16"></label>
-      <label class="row"><span>Tile height (px)</span><input type="number" id="th" min="1" value="16"></label>
-      <label class="row"><span>Outer margin (px)</span><input type="number" id="mg" min="0" value="0"></label>
-      <label class="row"><span>Spacing between tiles (px)</span><input type="number" id="sp" min="0" value="0"></label>
-
-      <div class="stat" id="stat">No image loaded</div>
-
-      <div class="btns">
-        <button class="btn" id="dlAll" disabled>⬇ Download all tiles</button>
-        <button class="btn alt" id="dlJson" disabled>⬇ Export JSON atlas</button>
+      <div class="canvas-box"><canvas id="srcCanvas"></canvas></div>
+      <div class="zoom-row">
+        <span>Zoom</span>
+        <input type="range" id="zoom" min="1" max="32" value="8" step="1">
+        <span id="zoomVal">8×</span>
       </div>
     </div>
+  </section>
 
-    <div class="panel preview-panel">
-      <h2>3 · Preview (click a tile to isolate it)</h2>
-      <div class="preview-scroll" id="pwrap">
-        <div class="placeholder" id="ph">Load a sprite sheet to see the slicing grid.</div>
-        <canvas id="cv" style="display:none"></canvas>
-      </div>
-      <div class="tile-view" id="tv">
-        <canvas id="tcv" width="128" height="128"></canvas>
-        <div class="tile-meta" id="tmeta"></div>
-        <button class="tile-dl" id="tdl">Download this tile</button>
-      </div>
+  <section class="panel">
+    <h2>2 · Remap &amp; Export</h2>
+    <div id="colorArea">
+      <p class="empty-note">Load an image to see its palette. Each row is one color — pick a new color (or type a hex) and the preview updates instantly.</p>
     </div>
-  </div>
+    <div class="btn-row" id="btnRow" style="display:none;">
+      <button class="btn" id="downloadBtn">⬇ Download PNG</button>
+      <button class="btn secondary" id="resetBtn">Reset colors</button>
+      <button class="btn secondary" id="randomBtn">🎲 Randomize</button>
+    </div>
+    <div class="status" id="status"></div>
+    <p class="hint">Tip: transparent pixels are kept transparent. The output PNG is exactly the same size as your source image.</p>
+  </section>
+</main>
 
-  <div class="footer">Built by <a href="https://launchtower.dev" target="_blank" rel="noopener">LaunchTower</a> · free &amp; open, no tracking<br>More free tools &amp; games: <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener">LaunchTower</a></div>
-</div>
+<footer>
+  Part of the <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener">LaunchTower</a> toolkit for pixel artists &amp; game devs.
+</footer>
 
 <script>
 (function () {
   "use strict";
-  var fileIn = document.getElementById("file");
-  var drop = document.getElementById("drop");
-  var twIn = document.getElementById("tw"), thIn = document.getElementById("th");
-  var mgIn = document.getElementById("mg"), spIn = document.getElementById("sp");
-  var cv = document.getElementById("cv"), ctx = cv.getContext("2d");
-  var ph = document.getElementById("ph"), pwrap = document.getElementById("pwrap");
-  var stat = document.getElementById("stat");
-  var dlAll = document.getElementById("dlAll"), dlJson = document.getElementById("dlJson");
-  var tv = document.getElementById("tv"), tcv = document.getElementById("tcv");
-  var tctx = tcv.getContext("2d"), tmeta = document.getElementById("tmeta"), tdl = document.getElementById("tdl");
-  var presets = document.getElementById("presets");
 
-  var img = null, tiles = [], zoom = 8, selected = -1;
+  var dropzone = document.getElementById("dropzone");
+  var fileInput = document.getElementById("fileInput");
+  var previewWrap = document.getElementById("previewWrap");
+  var srcCanvas = document.getElementById("srcCanvas");
+  var srcCtx = srcCanvas.getContext("2d", { willReadFrequently: true });
+  var imgInfo = document.getElementById("imgInfo");
+  var imgName = document.getElementById("imgName");
+  var zoom = document.getElementById("zoom");
+  var zoomVal = document.getElementById("zoomVal");
+  var colorArea = document.getElementById("colorArea");
+  var btnRow = document.getElementById("btnRow");
+  var downloadBtn = document.getElementById("downloadBtn");
+  var resetBtn = document.getElementById("resetBtn");
+  var randomBtn = document.getElementById("randomBtn");
+  var status = document.getElementById("status");
 
-  // ---- file loading ----
-  function loadFile(f) {
-    if (!f || !f.type || f.type.indexOf("image/") !== 0) return;
-    var url = URL.createObjectURL(f);
-    var im = new Image();
-    im.onload = function () {
-      img = im;
-      URL.revokeObjectURL(url);
-      compute();
-    };
-    im.src = url;
+  var sourceImage = null;      // original Image object
+  var sourceData = null;       // Uint8ClampedArray of original pixels
+  var mapping = [];            // array of {orig:[r,g,b,a], target:[r,g,b,a], count:n}
+  var baseName = "sprite";
+
+  function setStatus(msg, isErr) {
+    status.textContent = msg || "";
+    status.className = "status" + (isErr ? " err" : "");
   }
-  fileIn.addEventListener("change", function () { loadFile(fileIn.files[0]); });
 
-  // ---- built-in example sheet (no file needed) ----
-  function loadExample() {
-    var c = document.createElement("canvas");
-    c.width = 64; c.height = 32;
-    var x = c.getContext("2d");
-    var colors = ["#e74c3c", "#e67e22", "#f1c40f", "#2ecc71", "#1abc9c", "#3498db", "#9b59b6", "#ecf0f1"];
-    for (var r = 0; r < 2; r++) {
-      for (var col = 0; col < 4; col++) {
-        var ox = col * 16, oy = r * 16;
-        x.fillStyle = colors[(r * 4 + col) % colors.length];
-        x.fillRect(ox, oy, 16, 16);
-        x.fillStyle = "rgba(0,0,0,.35)";
-        if ((r + col) % 2 === 0) {
-          x.fillRect(ox + 4, oy + 4, 8, 8);
-        } else {
-          x.fillRect(ox + 2, oy + 10, 12, 4);
-          x.fillRect(ox + 6, oy + 2, 4, 8);
-        }
-      }
+  function hexToRgb(hex) {
+    var h = hex.replace("#", "").trim();
+    if (h.length === 3) h = h[0]+h[0]+h[1]+h[1]+h[2]+h[2];
+    if (h.length !== 6) return null;
+    var n = parseInt(h, 16);
+    if (isNaN(n)) return null;
+    return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+  }
+
+  function rgbToHex(rgb) {
+    var s = "#";
+    for (var i = 0; i < 3; i++) {
+      s += ("0" + rgb[i].toString(16)).slice(-2);
     }
-    c.toBlob(function (b) {
-      if (b) loadFile(new File([b], "example-sheet.png", { type: "image/png" }));
-    }, "image/png");
+    return s;
   }
-  document.getElementById("loadExample").addEventListener("click", loadExample);
-  drop.addEventListener("click", function () { fileIn.click(); });
-  ["dragover", "dragenter"].forEach(function (e) {
-    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.add("over"); });
-  });
-  ["dragleave", "drop"].forEach(function (e) {
-    drop.addEventListener(e, function (ev) { ev.preventDefault(); drop.classList.remove("over"); });
-  });
-  drop.addEventListener("drop", function (ev) {
-    if (ev.dataTransfer && ev.dataTransfer.files.length) loadFile(ev.dataTransfer.files[0]);
-  });
-  window.addEventListener("dragover", function (e) { e.preventDefault(); });
-  window.addEventListener("drop", function (e) { e.preventDefault(); });
 
-  // ---- settings ----
-  presets.addEventListener("click", function (e) {
-    var b = e.target.closest("button");
-    if (!b) return;
-    var s = parseInt(b.dataset.size, 10);
-    twIn.value = s; thIn.value = s;
-    presets.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
-    b.classList.add("active");
-    compute();
-  });
-  [twIn, thIn, mgIn, spIn].forEach(function (el) {
-    el.addEventListener("input", function () {
-      presets.querySelectorAll("button").forEach(function (x) { x.classList.remove("active"); });
-      compute();
-    });
-  });
-
-  // ---- core: compute tile list + draw ----
-  function compute() {
-    if (!img) return;
-    var W = img.naturalWidth, H = img.naturalHeight;
-    var tw = Math.max(1, parseInt(twIn.value, 10) || 16);
-    var th = Math.max(1, parseInt(thIn.value, 10) || 16);
-    var mg = Math.max(0, parseInt(mgIn.value, 10) || 0);
-    var sp = Math.max(0, parseInt(spIn.value, 10) || 0);
-    var stepX = tw + sp, stepY = th + sp;
-    var cols = Math.floor((W - 2 * mg + sp) / stepX);
-    var rows = Math.floor((H - 2 * mg + sp) / stepY);
-    if (cols < 1 || rows < 1) {
-      stat.innerHTML = "Grid doesn't fit the image (need at least one tile).";
-      tiles = [];
-      drawGrid();
+  function loadFile(file) {
+    if (!file || !file.type || file.type.indexOf("image/") !== 0) {
+      setStatus("That doesn't look like an image file.", true);
       return;
     }
-    tiles = [];
-    for (var r = 0; r < rows; r++) {
-      for (var c = 0; c < cols; c++) {
-        tiles.push({
-          index: r * cols + c,
-          x: mg + c * stepX,
-          y: mg + r * stepY,
-          w: tw, h: th,
-          col: c, row: r
-        });
+    var url = URL.createObjectURL(file);
+    var img = new Image();
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      initImage(img, file.name);
+    };
+    img.onerror = function () {
+      URL.revokeObjectURL(url);
+      setStatus("Could not decode that image. Try a PNG or JPG.", true);
+    };
+    img.src = url;
+  }
+
+  function initImage(img, name) {
+    sourceImage = img;
+    baseName = (name || "sprite").replace(/\.[^.]+$/, "") || "sprite";
+    srcCanvas.width = img.naturalWidth;
+    srcCanvas.height = img.naturalHeight;
+    srcCtx.clearRect(0, 0, srcCanvas.width, srcCanvas.height);
+    srcCtx.drawImage(img, 0, 0);
+    sourceData = srcCtx.getImageData(0, 0, srcCanvas.width, srcCanvas.height).data;
+
+    // Count distinct colors (RGBA)
+    var map = new Map();
+    for (var i = 0; i < sourceData.length; i += 4) {
+      var key = sourceData[i] + "," + sourceData[i+1] + "," + sourceData[i+2] + "," + sourceData[i+3];
+      map.set(key, (map.get(key) || 0) + 1);
+    }
+    var entries = [];
+    map.forEach(function (count, key) {
+      var parts = key.split(",").map(Number);
+      entries.push({ orig: parts, target: parts.slice(), count: count });
+    });
+    // Sort: opaque first, then by count desc
+    entries.sort(function (a, b) {
+      if (a.orig[3] !== b.orig[3]) return b.orig[3] - a.orig[3];
+      return b.count - a.count;
+    });
+    mapping = entries;
+
+    imgInfo.textContent = img.naturalWidth + " × " + img.naturalHeight + " px · " + entries.length + " colors";
+    imgName.textContent = name || "";
+    previewWrap.classList.add("visible");
+    btnRow.style.display = "flex";
+    renderColorList();
+    applyZoom();
+    renderPreview();
+    setStatus("Loaded. Pick new colors on the right — the preview updates live.", false);
+  }
+
+  function renderColorList() {
+    colorArea.innerHTML = "";
+    var list = document.createElement("div");
+    list.className = "color-list";
+    mapping.forEach(function (entry, idx) {
+      var row = document.createElement("div");
+      row.className = "color-row";
+
+      var sw = document.createElement("div");
+      sw.className = "swatch";
+      sw.style.background = entry.orig[3] === 0
+        ? "repeating-conic-gradient(#333 0% 25%, #111 0% 50%) 50% / 8px 8px"
+        : rgbToHex(entry.orig);
+      sw.title = "original";
+
+      var hex = document.createElement("span");
+      hex.className = "hex";
+      hex.textContent = entry.orig[3] === 0 ? "alpha" : rgbToHex(entry.orig);
+
+      var picker = document.createElement("input");
+      picker.type = "color";
+      picker.value = entry.orig[3] === 0 ? "#000000" : rgbToHex(entry.orig);
+      picker.addEventListener("input", function () {
+        entry.target = hexToRgb(picker.value) || entry.target;
+        var hexEdit = row.querySelector(".hexedit");
+        if (hexEdit) hexEdit.value = picker.value;
+        renderPreview();
+      });
+
+      var hexEdit = document.createElement("input");
+      hexEdit.type = "text";
+      hexEdit.className = "hexedit";
+      hexEdit.value = entry.orig[3] === 0 ? "alpha" : rgbToHex(entry.orig);
+      hexEdit.spellcheck = false;
+      hexEdit.addEventListener("change", function () {
+        var v = hexEdit.value.trim();
+        if (v.toLowerCase() === "alpha" || v === "") {
+          entry.target = [0, 0, 0, 0];
+          hexEdit.value = "alpha";
+        } else {
+          var rgb = hexToRgb(v);
+          if (!rgb) {
+            hexEdit.value = rgbToHex(entry.target);
+            return;
+          }
+          entry.target = rgb;
+          hexEdit.value = rgbToHex(rgb);
+          picker.value = rgbToHex(rgb);
+        }
+        renderPreview();
+      });
+
+      var count = document.createElement("span");
+      count.className = "count";
+      count.textContent = entry.count + " px";
+
+      row.appendChild(sw);
+      row.appendChild(hex);
+      row.appendChild(picker);
+      row.appendChild(hexEdit);
+      row.appendChild(count);
+      list.appendChild(row);
+    });
+    colorArea.appendChild(list);
+  }
+
+  function applyZoom() {
+    var z = parseInt(zoom.value, 10);
+    zoomVal.textContent = z + "×";
+    if (!sourceImage) return;
+    // CSS zoom via width/height on canvas (keeps pixelated look)
+    srcCanvas.style.width = (sourceImage.naturalWidth * z) + "px";
+    srcCanvas.style.height = (sourceImage.naturalHeight * z) + "px";
+  }
+  zoom.addEventListener("input", applyZoom);
+
+  function renderPreview() {
+    if (!sourceData) return;
+    var w = srcCanvas.width, h = srcCanvas.height;
+    var out = srcCtx.createImageData(w, h);
+    var od = out.data;
+    // Build lookup: key -> target
+    var lookup = new Map();
+    mapping.forEach(function (e) {
+      lookup.set(e.orig[0] + "," + e.orig[1] + "," + e.orig[2] + "," + e.orig[3], e.target);
+    });
+    for (var i = 0; i < sourceData.length; i += 4) {
+      var key = sourceData[i] + "," + sourceData[i+1] + "," + sourceData[i+2] + "," + sourceData[i+3];
+      var t = lookup.get(key) || [sourceData[i], sourceData[i+1], sourceData[i+2], sourceData[i+3]];
+      od[i] = t[0]; od[i+1] = t[1]; od[i+2] = t[2]; od[i+3] = t[3];
+    }
+    srcCtx.putImageData(out, 0, 0);
+  }
+
+  downloadBtn.addEventListener("click", function () {
+    if (!sourceData) return;
+    // Render final at native size to a temp canvas, then toBlob
+    var c = document.createElement("canvas");
+    c.width = srcCanvas.width; c.height = srcCanvas.height;
+    var ctx = c.getContext("2d");
+    ctx.drawImage(srcCanvas, 0, 0);
+    c.toBlob(function (blob) {
+      if (!blob) { setStatus("Export failed.", true); return; }
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = baseName + "-swapped.png";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+      setStatus("Downloaded " + baseName + "-swapped.png", false);
+    }, "image/png");
+  });
+
+  resetBtn.addEventListener("click", function () {
+    mapping.forEach(function (e) { e.target = e.orig.slice(); });
+    renderColorList();
+    renderPreview();
+    setStatus("Colors reset to original.", false);
+  });
+
+  randomBtn.addEventListener("click", function () {
+    mapping.forEach(function (e) {
+      if (e.orig[3] === 0) { e.target = [0,0,0,0]; return; }
+      e.target = [
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256),
+        Math.floor(Math.random() * 256),
+        255
+      ];
+    });
+    renderColorList();
+    renderPreview();
+    setStatus("Randomized palette — tweak any row you don't like.", false);
+  });
+
+  dropzone.addEventListener("click", function () { fileInput.click(); });
+  fileInput.addEventListener("change", function () {
+    if (fileInput.files && fileInput.files[0]) loadFile(fileInput.files[0]);
+  });
+  ["dragenter", "dragover"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.add("dragover");
+    });
+  });
+  ["dragleave", "drop"].forEach(function (ev) {
+    dropzone.addEventListener(ev, function (e) {
+      e.preventDefault(); e.stopPropagation();
+      dropzone.classList.remove("dragover");
+    });
+  });
+  dropzone.addEventListener("drop", function (e) {
+    var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+    if (f) loadFile(f);
+  });
+  // Paste support
+  document.addEventListener("paste", function (e) {
+    var items = e.clipboardData && e.clipboardData.items;
+    if (!items) return;
+    for (var i = 0; i < items.length; i++) {
+      if (items[i].type && items[i].type.indexOf("image/") === 0) {
+        var f = items[i].getAsFile();
+        if (f) { loadFile(f); return; }
       }
     }
-    stat.innerHTML = "Image <b>" + W + "×" + H + "</b> · grid <b>" + cols + "×" + rows + "</b> · <b>" + tiles.length + "</b> tiles";
-    dlAll.disabled = false;
-    dlJson.disabled = false;
-    selected = -1;
-    tv.classList.remove("show");
-    drawGrid();
-  }
-
-  function drawGrid() {
-    if (!img) return;
-    var W = img.naturalWidth, H = img.naturalHeight;
-    // pick zoom so the sheet fits ~900px wide on desktop, min 4x
-    zoom = Math.max(4, Math.min(16, Math.floor(900 / W)));
-    cv.width = W * zoom;
-    cv.height = H * zoom;
-    ctx.imageSmoothingEnabled = false;
-    ctx.drawImage(img, 0, 0, W * zoom, H * zoom);
-    // grid lines
-    ctx.strokeStyle = "rgba(88,166,255,0.9)";
-    ctx.lineWidth = 1;
-    var mg = Math.max(0, parseInt(mgIn.value, 10) || 0);
-    var sp = Math.max(0, parseInt(spIn.value, 10) || 0);
-    var tw = Math.max(1, parseInt(twIn.value, 10) || 16);
-    var th = Math.max(1, parseInt(thIn.value, 10) || 16);
-    var stepX = tw + sp, stepY = th + sp;
-    var cols = Math.floor((W - 2 * mg + sp) / stepX);
-    var rows = Math.floor((H - 2 * mg + sp) / stepY);
-    for (var c = 0; c <= cols; c++) {
-      var x = (mg + c * stepX) * zoom;
-      ctx.beginPath(); ctx.moveTo(x, mg * zoom); ctx.lineTo(x, (mg + rows * stepY - sp) * zoom); ctx.stroke();
-    }
-    for (var r = 0; r <= rows; r++) {
-      var y = (mg + r * stepY) * zoom;
-      ctx.beginPath(); ctx.moveTo(mg * zoom, y); ctx.lineTo((mg + cols * stepX - sp) * zoom, y); ctx.stroke();
-    }
-    // highlight selected
-    if (selected >= 0 && tiles[selected]) {
-      var t = tiles[selected];
-      ctx.fillStyle = "rgba(63,185,80,0.35)";
-      ctx.fillRect(t.x * zoom, t.y * zoom, t.w * zoom, t.h * zoom);
-      ctx.strokeStyle = "#3fb950";
-      ctx.lineWidth = 2;
-      ctx.strokeRect(t.x * zoom, t.y * zoom, t.w * zoom, t.h * zoom);
-    }
-    cv.style.display = "block";
-    ph.style.display = "none";
-  }
-
-  // ---- click to select a tile ----
-  cv.addEventListener("click", function (e) {
-    if (!tiles.length) return;
-    var rect = cv.getBoundingClientRect();
-    var px = (e.clientX - rect.left) / zoom;
-    var py = (e.clientY - rect.top) / zoom;
-    var hit = -1;
-    for (var i = 0; i < tiles.length; i++) {
-      var t = tiles[i];
-      if (px >= t.x && px < t.x + t.w && py >= t.y && py < t.y + t.h) { hit = i; break; }
-    }
-    if (hit === -1) return;
-    selected = hit;
-    drawGrid();
-    showTile(tiles[hit]);
-  });
-
-  function showTile(t) {
-    var scale = Math.max(1, Math.floor(128 / Math.max(t.w, t.h)));
-    tcv.width = t.w * scale;
-    tcv.height = t.h * scale;
-    tctx.imageSmoothingEnabled = false;
-    tctx.clearRect(0, 0, tcv.width, tcv.height);
-    tctx.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, t.w * scale, t.h * scale);
-    tmeta.innerHTML = "Tile <b>#" + t.index + "</b> · col " + t.col + ", row " + t.row + " · <b>" + t.w + "×" + t.h + "</b> px";
-    tv.classList.add("show");
-  }
-
-  // ---- downloads ----
-  function tileToBlob(t) {
-    var c = document.createElement("canvas");
-    c.width = t.w; c.height = t.h;
-    var x = c.getContext("2d");
-    x.imageSmoothingEnabled = false;
-    x.drawImage(img, t.x, t.y, t.w, t.h, 0, 0, t.w, t.h);
-    return new Promise(function (res) { c.toBlob(res, "image/png"); });
-  }
-  function saveBlob(blob, name) {
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = name;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
-  }
-  tdl.addEventListener("click", function () {
-    if (selected < 0) return;
-    tileToBlob(tiles[selected]).then(function (b) { saveBlob(b, "tile_" + tiles[selected].index + ".png"); });
-  });
-  dlAll.addEventListener("click", function () {
-    if (!tiles.length) return;
-    dlAll.disabled = true;
-    (function next(i) {
-      if (i >= tiles.length) { dlAll.disabled = false; return; }
-      tileToBlob(tiles[i]).then(function (b) {
-        saveBlob(b, "tile_" + tiles[i].index + ".png");
-        setTimeout(function () { next(i + 1); }, 250);
-      });
-    })(0);
-  });
-  dlJson.addEventListener("click", function () {
-    if (!tiles.length) return;
-    var atlas = {
-      name: "sprite-atlas",
-      source: { width: img.naturalWidth, height: img.naturalHeight },
-      tile: { width: parseInt(twIn.value, 10), height: parseInt(thIn.value, 10) },
-      margin: parseInt(mgIn.value, 10),
-      spacing: parseInt(spIn.value, 10),
-      tiles: tiles.map(function (t) { return { index: t.index, x: t.x, y: t.y, w: t.w, h: t.h }; })
-    };
-    var blob = new Blob([JSON.stringify(atlas, null, 2)], { type: "application/json" });
-    saveBlob(blob, "sprite_atlas.json");
   });
 })();
 </script>
-<footer style="text-align:center;padding:18px 12px;color:#8b93a7;font-size:.85rem;font-family:system-ui,sans-serif;border-top:1px solid rgba(255,255,255,.08);margin-top:24px">More free tools &amp; games: <a href="https://pennypenguinapp-beep.github.io/" target="_blank" rel="noopener" style="color:#5eead4;text-decoration:none">LaunchTower</a></footer>
 </body>
 </html>
